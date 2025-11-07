@@ -1,1 +1,30 @@
 
+func longestCommonPrefix(strs []string) string {
+    if(strs==nil || len(strs)==0){
+		return ""
+	}
+	var lens = len(strs)
+	var allList = make([][]rune,lens,lens)
+	var minLen int= len(strs[0])
+	for index,value :=range strs{
+		if len(value)<minLen {
+			minLen =len(value)
+		}
+		allList[index] = []rune(value)
+	}
+	var runes = make([]rune,minLen,minLen)
+	door:
+	for  i := 0; i<minLen; i++{
+		var bl rune = 0
+		for _,value := range allList{
+			if bl==0 {
+				bl=value[i]
+			}else if bl != value[i] {
+                runes = runes[:i]
+				break door
+			}
+		}
+		runes[i] = bl 
+	}
+	return string(runes)
+}
