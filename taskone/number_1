@@ -1,1 +1,12 @@
 
+func twoSum(nums []int, target int) []int {
+    var leng = len(nums)
+	for i:=0; i<leng; i++{
+		for j:=i+1; j<leng; j++{
+			if nums[i] + nums[j] == target {
+				return []int{i,j}
+			}
+		}
+	}
+	return []int{}
+}
