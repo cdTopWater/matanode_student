@@ -1,1 +1,12 @@
 
+func removeDuplicates(slice []int) int {
+    var gc = slice[len(slice)-1]
+    for i := len(slice) - 2; i >= 0; i-- {
+        if gc == slice[i] { 
+            slice = append(slice[:i], slice[i+1:]...)
+        }else{
+			gc = slice[i]
+		}
+    }
+    return len(slice)
+}
