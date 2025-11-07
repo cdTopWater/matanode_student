@@ -1,1 +1,49 @@
 
+func isValid(s string) bool {
+    var stack = &Stack{element:make([]rune,0)} 
+    for index,value := range s {
+        if index==0{
+            stack.Push(value)
+        }else{
+            var run,_ = stack.Peek()
+            if mapsF[run]==value {
+                stack.Pop()
+            }else{
+                stack.Push(value)
+            }
+        }
+    }
+    _,boo := stack.Peek()
+    return !boo
+}
+
+var mapsF = map[rune]rune{91:93,123:125,40:41}
+
+type Stack struct{
+    element []rune
+}
+
+func (s *Stack) Push(value rune){
+    s.element = append(s.element,value)
+}
+
+func (s *Stack) Pop() (stk rune,boo bool){
+    if s.IsEmpty(){
+        return
+    }
+    var peek = s.element[len(s.element)-1]
+    s.element = s.element[:len(s.element)-1]
+    return peek,true
+}
+
+func (s *Stack) Peek() (stk rune,boo bool){
+    if s.IsEmpty(){
+        return
+    }
+    return s.element[len(s.element)-1],true
+}
+
+
+func (s *Stack) IsEmpty() bool {
+    return len(s.element) ==0
+}
