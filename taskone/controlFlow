@@ -1,1 +1,18 @@
 
+func singleNumber(nums []int) int {
+    if len(nums)==1{
+		return nums[0]
+	}
+	//数组排序
+	sort.Ints(nums)
+	var lens = len(nums)
+	for index := 0; index<lens ; index+=2{
+		if index == lens-1{
+			return nums[index]
+		}
+		if nums[index] != nums[index+1]{
+			return nums[index]
+		}
+	}
+	return 0
+}
