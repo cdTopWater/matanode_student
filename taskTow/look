@@ -1,1 +1,53 @@
 
+package main
+
+import (
+"fmt"
+"time"
+"sync"
+"sync/atomic"
+)
+
+func main()  {
+//编写一个程序，使用 sync.Mutex 来保护一个共享的计数器。启动10个协程，每个协程对计数器进行1000次递增操作，最后输出计数器的值
+	var wg sync.WaitGroup 
+	var param = &adds{}
+	wg.Add(10)
+	for u:=1;u<=10;u++ {
+		go func () {
+			for g:=1;g<=1000;g++{
+				param.addNums()
+			}
+			wg.Done()
+		}()
+	}	
+	wg.Wait()
+	fmt.Println(param.num)
+	//使用原子操作（ sync/atomic 包）实现一个无锁的计数器。启动10个协程，每个协程对计数器进行1000次递增操作，最后输出计数器的值
+	var p int64 =0
+	wg.Add(10)
+	for u:=1;u<=10;u++ {
+		go func () {
+			for g:=1;g<=1000;g++{
+				atomic.AddInt64(&p,1)
+			}
+			wg.Done()
+		}()
+	}	
+	wg.Wait()
+	fmt.Println(p)
+}
+
+
+type adds struct{
+	num int
+	myLook sync.Mutex
+}
+
+
+func (ad *adds) addNums(){
+	ad.myLook.Lock()
+	defer ad.myLook.Unlock()
+	ad.num=ad.num+1
+}
+
