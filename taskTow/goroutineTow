@@ -1,0 +1,61 @@
+package main
+
+import (
+"fmt"
+"time"
+"sync"
+)
+
+func main()  {
+//设计一个任务调度器，接收一组任务（可以用函数表示），并使用协程并发执行这些任务，同时统计每个任务的执行时间
+	var scheduler = TaskScheduler{}
+	var students = []student{student{name:"test1"},student{name:"test2"},student{name:"test3"}}
+	addTask(students,&scheduler)
+	scheduler.wg.Wait()
+	fmt.Println("启动完成")
+}
+
+type TaskScheduler struct{
+	tasks []task
+	wg sync.WaitGroup
+	look sync.Mutex
+}
+
+
+
+
+func addTask(students []student,scheduler *TaskScheduler)  {
+	var ts = *scheduler
+	for _, value := range students {
+		ts.wg.Add(1)
+		go ts.executeTask(&value)
+	}
+
+}
+
+
+func (scheduler *TaskScheduler) executeTask(task task)  {
+	defer (*scheduler).wg.Done()
+	var start = time.Now()
+	task.run()
+	var allTime = time.Since(start)
+	fmt.Println("执行总用时=",allTime)
+}
+
+
+type task interface{
+	run()
+}
+
+type student struct{
+	name string
+}
+
+func (s *student) run()  {
+	if s.name==""{
+		fmt.Println("name is nil")
+	}else{
+		fmt.Println("name=",s.name)
+	}
+	
+}
