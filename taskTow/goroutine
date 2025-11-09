@@ -1,1 +1,41 @@
 
+package main
+
+import (
+"fmt"
+"sync"
+)
+
+func main()  {
+//编写一个程序，使用 go 关键字启动两个协程，一个协程打印从1到10的奇数，另一个协程打印从2到10的偶数
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func(){
+		defer wg.Done()
+		jishu()
+	}()
+	go func(){
+		defer wg.Done()
+		oushu()
+	}()
+	wg.Wait()
+	fmt.Println("启动完成")
+
+}
+
+
+func jishu(){
+	for a:=1; a<=10; a++{
+		if a%2!=0{
+			fmt.Println("奇数=",a)
+		}
+	}	
+}
+
+func oushu(){
+	for a:=1; a<=10; a++{
+		if a%2==0{
+			fmt.Println("偶数=",a)
+		}
+	}	
+}
