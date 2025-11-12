@@ -1,1 +1,90 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+)
+
+func main() {
+
+	db, e := gorm.Open(mysql.Open("root:123456@tcp(127.0.0.1:3306)/gorm?charset=utf8mb4&parseTime=True&loc=Local"))
+	if e != nil {
+		panic(e)
+	}
+
+	// 假设有一个名为 students 的表，包含字段 id （主键，自增）、 name （学生姓名，字符串类型）、 age （学生年龄，整数类型）、 grade （学生年级，字符串类型）。
+	// 要求 ：
+	//  编写SQL语句向 students 表中插入一条新记录，学生姓名为 "张三"，年龄为 20，年级为 "三年级"。
+
+	db.AutoMigrate(&students{})
+	var studentsOne = students{Name: "张三", Age: 20, Grade: "三年级"}
+	db.Create(&studentsOne)
+
+	//  编写SQL语句查询 students 表中所有年龄大于 18 岁的学生信息。
+
+	var listStudents = []students{}
+	db.Where("Age > ?", 18).Find(&listStudents)
+
+	//  编写SQL语句将 students 表中姓名为 "张三" 的学生年级更新为 "四年级"。
+
+	db.Model(&students{}).Where("Name=?", "张三").Update("Grade", "四年级")
+
+	//  编写SQL语句删除 students 表中年龄小于 15 岁的学生记录。
+
+	db.Where("Age < ?", 15).Delete(&students{})
+
+	// 题目2：事务语句
+	// 假设有两个表： accounts 表（包含字段 id 主键， balance 账户余额）和 transactions 表（包含字段 id 主键， from_account_id 转出账户ID， to_account_id 转入账户ID， amount 转账金额）。
+	// 要求 ：
+	// 编写一个事务，实现从账户 A 向账户 B 转账 100 元的操作。在事务中，需要先检查账户 A 的余额是否足够，如果足够则从账户 A 扣除 100 元，向账户 B 增加 100 元，并在 transactions 表中记录该笔转账信息。如果余额不足，则回滚事务
+
+	db.AutoMigrate(&Accounts{})
+	db.AutoMigrate(&Transactions{})
+
+	var accountsA = Accounts{Balance: 100}
+	var accountsB = Accounts{Balance: 20}
+
+	db.Create(&accountsA)
+	db.Create(&accountsB)
+	err := db.Transaction(func(tx *gorm.DB) error {
+		var newA = Accounts{Id: 1}
+		tx.Find(&newA)
+		if newA.Balance < 100 {
+			return errors.New("余额不足")
+		}
+		tx.Exec("update Accounts set Balance = Balance - ? where Id= ?", 100, newA.Id)
+		var newB = Accounts{Id: 2}
+		tx.Exec("update Accounts set Balance = Balance + ? where Id= ?", 100, newB.Id)
+		var transactions = Transactions{From_account_id: newA.Id, To_account_id: newB.Id, Amount: 100}
+		tx.Create(&transactions)
+		return nil
+	})
+
+	if err != nil {
+		fmt.Printf("异常error")
+	}
+
+}
+
+type Accounts struct {
+	Id      int
+	Balance float64 `description:"账户余额"`
+}
+
+type Transactions struct {
+	Id              int
+	From_account_id int     `description:"转出账户ID"`
+	To_account_id   int     `description:"转入账户ID"`
+	Amount          float64 `description:"转账金额"`
+}
+
+type students struct {
+	Id    int
+	Name  string
+	Age   int
+	Grade string
+}
 
