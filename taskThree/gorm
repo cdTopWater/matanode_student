@@ -1,1 +1,109 @@
 
+package main
+
+import (
+	"fmt"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+)
+
+func main() {
+
+	db, e := gorm.Open(mysql.Open("root:123456@tcp(127.0.0.1:3306)/gorm?charset=utf8mb4&parseTime=True&loc=Local"))
+	if e != nil {
+		panic(e)
+	}
+	// 进阶gorm
+	// 题目1：模型定义
+	// 假设你要开发一个博客系统，有以下几个实体： User （用户）、 Post （文章）、 Comment （评论）。
+	// 要求 ：
+	// 使用Gorm定义 User 、 Post 和 Comment 模型，其中 User 与 Post 是一对多关系（一个用户可以发布多篇文章）， Post 与 Comment 也是一对多关系（一篇文章可以有多个评论）。
+	// 编写Go代码，使用Gorm创建这些模型对应的数据库表。
+	//db.AutoMigrate(&User{})
+	db.AutoMigrate(&Post{})
+	db.AutoMigrate(&Comment{})
+
+	db.Create(&User{Name: "zhangtao"})
+	db.Create(&User{Name: "test2"})
+	db.Create(&User{Name: "test3"})
+	db.Create(&Post{Title: "title1", Content: "ceshijiasf", UserId: 1})
+	db.Create(&Post{Title: "title2", Content: "ce2j64", UserId: 2})
+	db.Create(&Post{Title: "title3", Content: "aetjhnw5j", UserId: 1})
+	db.Create(&Comment{PostId: 2, Msg: "aetjhnw5j"})
+	db.Create(&Comment{PostId: 2, Msg: "hao"})
+	db.Create(&Comment{PostId: 2, Msg: "798"})
+	db.Create(&Comment{PostId: 1, Msg: "success"})
+	db.Create(&Comment{PostId: 3, Msg: "fail"})
+	// 题目2：关联查询
+	// 基于上述博客系统的模型定义。
+	// 要求 ：
+	// 编写Go代码，使用Gorm查询某个用户发布的所有文章及其对应的评论信息。
+	var posts []Post
+	db.Where("user_id = ?", 1).Preload("Comments").Find(&posts)
+	fmt.Printf("posts=%v", posts)
+	// // 编写Go代码，使用Gorm查询评论数量最多的文章信息。
+	var maps = make(map[string]interface{})
+	db.Raw("select post_id ,count(post_id) counts from comments group by post_id order by counts desc limit 1").Scan(&maps)
+	fmt.Printf("maps=%v", maps)
+	var ids int
+	if idd, ok := maps["post_id"].(int64); ok {
+		ids = int(idd)
+	}
+	var postOne = Post{Id: ids}
+	db.Find(&postOne)
+	fmt.Printf("postOne=%v", postOne)
+	// 题目3：钩子函数
+	// 继续使用博客系统的模型。
+	// 要求 ：
+	// 为 Post 模型添加一个钩子函数，在文章创建时自动更新用户的文章数量统计字段。
+	db.Create(&Post{Title: "title8", Content: "吖5郭4阿瑟换个", UserId: 2})
+	// 为 Comment 模型添加一个钩子函数，在评论删除时检查文章的评论数量，如果评论数量为 0，则更新文章的评论状态为 "无评论"。
+	db.Create(&Comment{PostId: 3, Msg: "i love you() 0"})
+
+	db.Delete(&Comment{Id: 7})
+}
+
+type User struct {
+	Id        int
+	Name      string
+	PostCount int `gorm:"default:0"`
+}
+
+type Post struct {
+	Id         int
+	Title      string
+	Content    string
+	UserId     int       `gorm:"not null;index"` // 外键
+	Comments   []Comment `gorm:"foreignKey:PostID"`
+	CommentNum int       `gorm:"default:0"`
+	State      string
+}
+
+func (p *Post) AfterCreate(tx *gorm.DB) error {
+	tx.Exec("update users set post_count = post_count + 1 where id = ?", p.UserId)
+	return nil
+}
+
+type Comment struct {
+	Id     int
+	PostId int `gorm:"not null;index"` // 外键
+	Msg    string
+}
+
+func (c *Comment) AfterCreate(tx *gorm.DB) error {
+	tx.Exec("update posts set comment_num = comment_num + 1,state = '有评论' where id = ?", c.PostId)
+	return nil
+}
+
+func (c *Comment) BeforeDelete(tx *gorm.DB) error {
+	tx.Find(c)
+	var post = Post{Id: c.PostId}
+	tx.Find(&post)
+	if post.CommentNum > 1 {
+		tx.Exec("update posts set comment_num = comment_num - 1 where id = ?", c.PostId)
+	} else {
+		tx.Exec("update posts set comment_num = comment_num - 1,state = '无评论' where id = ?", c.PostId)
+	}
+	return nil
+}
